@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage, AIMessage
 from .schemas import ChatRequest, ChatResponse, TTSRequest, SpecialDeal
 from .agent import chatbot_graph
-from .vector_store import populate_pinecone_datav
+from .vector_store import populate_pinecone_data
 import os
 
 from dotenv import load_dotenv
