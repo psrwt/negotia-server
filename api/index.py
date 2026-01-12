@@ -7,6 +7,7 @@ from .schemas import ChatRequest, ChatResponse, TTSRequest, SpecialDeal
 from .agent import chatbot_graph
 from .vector_store import populate_pinecone_data
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -105,6 +106,23 @@ def generate_speech_sync(text: str, language: str = 'en-US', voice_id_override: 
 #     """Populates Pinecone data on startup."""
 #     populate_pinecone_data()
 
+_has_populated = False
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _has_populated
+
+    if not _has_populated:
+        print("Running Pinecone population once per instance")
+
+        try:
+            populate_pinecone_data()
+            _has_populated = True
+        except Exception as e:
+            print("Pinecone population failed:", e)
+
+    yield
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """Handles chat requests and generates speech in one go."""
@@ -176,7 +194,15 @@ async def chat_endpoint(request: ChatRequest):
         products=response_products,
         special_deal=response_deal
     )
-  
+
+
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "message": "Agent Server is running."
+    }
+
 
 # if __name__ == "__main__":
 #     import uvicorn
