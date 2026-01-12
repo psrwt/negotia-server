@@ -4,9 +4,9 @@ import re
 from typing import TypedDict, Annotated, Dict, List
 from langchain_core.messages import AIMessage, ToolMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
-from schemas import Product, FinalAnswer
-from tools import find_product, get_deal
-from config import llm
+from .schemas import Product, FinalAnswer
+from .tools import find_product, get_deal
+from .config import llm
 
 # --- Agent Setup ---
 tools = [find_product, get_deal]

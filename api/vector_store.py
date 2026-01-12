@@ -1,5 +1,5 @@
 from pinecone import Pinecone, ServerlessSpec
-from config import PINECONE_EMBEDDING_DIMENSION, embeddings_model
+from .config import PINECONE_EMBEDDING_DIMENSION, embeddings_model
 
 import os
 

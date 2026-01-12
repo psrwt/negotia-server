@@ -1,7 +1,7 @@
 from typing import List
 from langchain_core.tools import tool
-from config import embeddings_model, llm
-from vector_store import index
+from .config import embeddings_model, llm
+from .vector_store import index
 
 @tool
 def find_product(query: str) -> List[dict]:

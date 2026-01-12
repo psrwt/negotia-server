@@ -3,9 +3,9 @@ import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage, AIMessage
-from schemas import ChatRequest, ChatResponse, TTSRequest, SpecialDeal
-from agent import chatbot_graph
-from vector_store import populate_pinecone_datav
+from .schemas import ChatRequest, ChatResponse, TTSRequest, SpecialDeal
+from .agent import chatbot_graph
+from .vector_store import populate_pinecone_datav
 import os
 
 from dotenv import load_dotenv
