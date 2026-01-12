@@ -94,10 +94,10 @@ def generate_speech_sync(text: str, language: str = 'en-US', voice_id_override: 
         print(f"Error calling Murf AI: {e}")
         return None
 
-@app.on_event("startup")
-def on_startup():
-    """Populates Pinecone data on startup."""
-    populate_pinecone_data()
+# @app.on_event("startup")
+# def on_startup():
+#     """Populates Pinecone data on startup."""
+#     populate_pinecone_data()
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
