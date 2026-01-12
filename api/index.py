@@ -6,7 +6,11 @@ from langchain_core.messages import HumanMessage, AIMessage
 from schemas import ChatRequest, ChatResponse, TTSRequest, SpecialDeal
 from agent import chatbot_graph
 from vector_store import populate_pinecone_datav
-from config import MURF_API_KEY, MURF_VOICE_ID
+import os
+
+MURF_API_KEY = os.getenv("MURF_API_KEY")
+MURF_VOICE_ID = os.getenv("MURF_VOICE_ID")
+MURF_VOICE_ID
 
 # --- FastAPI Application ---
 app = FastAPI(title="Mobile Salesperson Chatbot API", version="1.0.0")

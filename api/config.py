@@ -14,13 +14,12 @@ def get_env_variable(var_name: str, default: str = None) -> str:
     return value
 
 # --- API Keys ---
-MURF_API_KEY = get_env_variable("MURF_API_KEY")
-MURF_VOICE_ID = get_env_variable("MURF_VOICE_ID")
+
 GOOGLE_API_KEY = get_env_variable("GOOGLE_API_KEY")
-PINECONE_API_KEY = get_env_variable("PINECONE_API_KEY")
+# PINECONE_API_KEY = get_env_variable("PINECONE_API_KEY")
 
 # --- Pinecone Settings ---
-PINECONE_INDEX_NAME = get_env_variable("PINECONE_INDEX_NAME", "mobile-phones")
+# PINECONE_INDEX_NAME = get_env_variable("PINECONE_INDEX_NAME", "mobile-phones")
 PINECONE_EMBEDDING_DIMENSION = 3072
 
 # --- LLM and Embeddings - Use a model with better multilingual support ---
