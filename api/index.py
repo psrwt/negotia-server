@@ -9,6 +9,10 @@ from .vector_store import populate_pinecone_data
 import os
 from contextlib import asynccontextmanager
 
+import traceback
+import sys
+
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -133,77 +137,165 @@ def generate_speech_sync(text: str, language: str = 'en-US', voice_id_override: 
 #     """Populates Pinecone data on startup."""
 #     populate_pinecone_data()
 
+# @app.post("/chat", response_model=ChatResponse)
+# async def chat_endpoint(request: ChatRequest):
+#     """Handles chat requests and generates speech in one go."""
+#     # Detect language from user message (override the request language if non-English detected)
+#     detected_language = detect_language_from_text(request.user_message)
+    
+#     # Use detected language if it's not English, otherwise use the requested language
+#     final_language = detected_language if detected_language != 'en-US' else request.language
+    
+#     print(f"Detected language: {detected_language}, Using language: {final_language}")
+    
+#     # Add language context to the system prompt
+#     language_context = f"User is speaking in {final_language}. Respond in the same language."
+    
+#     history_messages = [
+#         HumanMessage(content=msg['content']) if msg['role'] == 'user'
+#         else AIMessage(content=msg['content'])
+#         for msg in request.history
+#     ]
+
+#     initial_state = {
+#         "messages": [("system", language_context)] + history_messages + [HumanMessage(content=request.user_message)],
+#         "retrieved_products": {},
+#         "product_context_ids": [],
+#         "detected_language": final_language  # Pass the final language to state
+#     }
+    
+#     final_state = await chatbot_graph.ainvoke(initial_state)
+#     final_answer_args = final_state["messages"][-1].tool_calls[0]['args']
+    
+#     agent_text_response = final_answer_args['text']
+
+#     # Generate Audio with language-specific voice
+#     audio_url = generate_speech_sync(
+#         agent_text_response, 
+#         final_language,  # Use the final determined language
+#         request.voice_id
+#     )
+
+#     all_retrieved_products = {}
+#     for products_dict in final_state.get('__intermediate_steps__', []):
+#         if isinstance(products_dict, dict) and 'retrieved_products' in products_dict:
+#             all_retrieved_products.update(products_dict['retrieved_products'])
+#     all_retrieved_products.update(final_state.get('retrieved_products', {}))
+
+#     response_products = [
+#         all_retrieved_products[pid]
+#         for pid in final_answer_args.get('product_ids', [])
+#         if pid in all_retrieved_products
+#     ]
+
+#     response_deal = None
+#     if final_answer_args.get('deal_heading') and final_answer_args.get('deal_product_ids'):
+#         deal_products = [
+#             all_retrieved_products[pid]
+#             for pid in final_answer_args['deal_product_ids']
+#             if pid in all_retrieved_products
+#         ]
+#         if deal_products:
+#             response_deal = SpecialDeal(
+#                 heading=final_answer_args['deal_heading'],
+#                 deal_price=final_answer_args['deal_price'],
+#                 products_involved=deal_products
+#             )
+
+#     return ChatResponse(
+#         text=agent_text_response,
+#         audio_url=audio_url,
+#         products=response_products,
+#         special_deal=response_deal
+#     )
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """Handles chat requests and generates speech in one go."""
-    # Detect language from user message (override the request language if non-English detected)
-    detected_language = detect_language_from_text(request.user_message)
-    
-    # Use detected language if it's not English, otherwise use the requested language
-    final_language = detected_language if detected_language != 'en-US' else request.language
-    
-    print(f"Detected language: {detected_language}, Using language: {final_language}")
-    
-    # Add language context to the system prompt
-    language_context = f"User is speaking in {final_language}. Respond in the same language."
-    
-    history_messages = [
-        HumanMessage(content=msg['content']) if msg['role'] == 'user'
-        else AIMessage(content=msg['content'])
-        for msg in request.history
-    ]
-
-    initial_state = {
-        "messages": [("system", language_context)] + history_messages + [HumanMessage(content=request.user_message)],
-        "retrieved_products": {},
-        "product_context_ids": [],
-        "detected_language": final_language  # Pass the final language to state
-    }
-    
-    final_state = await chatbot_graph.ainvoke(initial_state)
-    final_answer_args = final_state["messages"][-1].tool_calls[0]['args']
-    
-    agent_text_response = final_answer_args['text']
-
-    # Generate Audio with language-specific voice
-    audio_url = generate_speech_sync(
-        agent_text_response, 
-        final_language,  # Use the final determined language
-        request.voice_id
-    )
-
-    all_retrieved_products = {}
-    for products_dict in final_state.get('__intermediate_steps__', []):
-        if isinstance(products_dict, dict) and 'retrieved_products' in products_dict:
-            all_retrieved_products.update(products_dict['retrieved_products'])
-    all_retrieved_products.update(final_state.get('retrieved_products', {}))
-
-    response_products = [
-        all_retrieved_products[pid]
-        for pid in final_answer_args.get('product_ids', [])
-        if pid in all_retrieved_products
-    ]
-
-    response_deal = None
-    if final_answer_args.get('deal_heading') and final_answer_args.get('deal_product_ids'):
-        deal_products = [
+    try:
+        print("[/chat] Request received")
+        
+        # Detect language from user message
+        detected_language = detect_language_from_text(request.user_message)
+        final_language = detected_language if detected_language != 'en-US' else request.language
+        print(f"[/chat] Detected language: {detected_language}, Using language: {final_language}")
+        
+        # Add language context
+        language_context = f"User is speaking in {final_language}. Respond in the same language."
+        
+        history_messages = [
+            HumanMessage(content=msg['content']) if msg['role'] == 'user'
+            else AIMessage(content=msg['content'])
+            for msg in request.history
+        ]
+        print(f"[/chat] History messages count: {len(history_messages)}")
+        
+        initial_state = {
+            "messages": [("system", language_context)] + history_messages + [HumanMessage(content=request.user_message)],
+            "retrieved_products": {},
+            "product_context_ids": [],
+            "detected_language": final_language
+        }
+        
+        # Call chatbot graph
+        final_state = await chatbot_graph.ainvoke(initial_state)
+        print("[/chat] Chatbot graph invoked")
+        
+        last_msg = final_state["messages"][-1]
+        print(f"[/chat] Last message type: {type(last_msg)}, tool_calls: {getattr(last_msg, 'tool_calls', None)}")
+        
+        final_answer_args = last_msg.tool_calls[0]['args']
+        print("[/chat] Final answer arguments extracted")
+        
+        agent_text_response = final_answer_args['text']
+        print(f"[/chat] Agent response length: {len(agent_text_response)}")
+        
+        # Generate Audio
+        audio_url = generate_speech_sync(agent_text_response, final_language, request.voice_id)
+        print(f"[/chat] Audio URL: {audio_url}")
+        
+        # Collect all products
+        all_retrieved_products = {}
+        for products_dict in final_state.get('__intermediate_steps__', []):
+            if isinstance(products_dict, dict) and 'retrieved_products' in products_dict:
+                all_retrieved_products.update(products_dict['retrieved_products'])
+        all_retrieved_products.update(final_state.get('retrieved_products', {}))
+        print(f"[/chat] Total products collected: {len(all_retrieved_products)}")
+        
+        response_products = [
             all_retrieved_products[pid]
-            for pid in final_answer_args['deal_product_ids']
+            for pid in final_answer_args.get('product_ids', [])
             if pid in all_retrieved_products
         ]
-        if deal_products:
-            response_deal = SpecialDeal(
-                heading=final_answer_args['deal_heading'],
-                deal_price=final_answer_args['deal_price'],
-                products_involved=deal_products
-            )
+        
+        response_deal = None
+        if final_answer_args.get('deal_heading') and final_answer_args.get('deal_product_ids'):
+            deal_products = [
+                all_retrieved_products[pid]
+                for pid in final_answer_args['deal_product_ids']
+                if pid in all_retrieved_products
+            ]
+            if deal_products:
+                response_deal = SpecialDeal(
+                    heading=final_answer_args['deal_heading'],
+                    deal_price=final_answer_args['deal_price'],
+                    products_involved=deal_products
+                )
+        print("[/chat] Response prepared, returning now")
+        
+        return ChatResponse(
+            text=agent_text_response,
+            audio_url=audio_url,
+            products=response_products,
+            special_deal=response_deal
+        )
 
-    return ChatResponse(
-        text=agent_text_response,
-        audio_url=audio_url,
-        products=response_products,
-        special_deal=response_deal
-    )
+    except Exception as e:
+        print("[/chat] Exception occurred:", e)
+        import traceback, sys
+        traceback.print_exc(file=sys.stdout)
+        raise
 
 
 @app.get("/")
