@@ -15,16 +15,42 @@ load_dotenv()
 MURF_API_KEY = os.getenv("MURF_API_KEY")
 MURF_VOICE_ID = os.getenv("MURF_VOICE_ID")
 
+_has_populated = False
+
+import asyncio
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _has_populated
+
+    if not _has_populated:
+        try:
+            await asyncio.to_thread(populate_pinecone_data)
+            _has_populated = True
+        except Exception as e:
+            print("Pinecone population failed:", e)
+
+    yield
+
 # --- FastAPI Application ---
-app = FastAPI(title="Mobile Salesperson Chatbot API", version="1.0.0")
+app = FastAPI(
+    title="Mobile Salesperson Chatbot API",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://negotia-flame.vercel.app",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Complete language to voice mapping
 LANGUAGE_VOICE_MAP = {
@@ -105,23 +131,6 @@ def generate_speech_sync(text: str, language: str = 'en-US', voice_id_override: 
 # def on_startup():
 #     """Populates Pinecone data on startup."""
 #     populate_pinecone_data()
-
-_has_populated = False
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global _has_populated
-
-    if not _has_populated:
-        print("Running Pinecone population once per instance")
-
-        try:
-            populate_pinecone_data()
-            _has_populated = True
-        except Exception as e:
-            print("Pinecone population failed:", e)
-
-    yield
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
